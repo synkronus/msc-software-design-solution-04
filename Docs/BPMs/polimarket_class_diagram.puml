@@ -1,0 +1,225 @@
+@startuml PoliMarket_Class_Diagram_CBSE
+
+!theme plain
+title PoliMarket - Diagrama de Clases con Enfoque en Reutilización (CBSE)
+
+' Definición de colores para componentes reutilizables
+!define REUSABLE_INTERFACE #E8F5E8
+!define REUSABLE_CLASS #FFF2CC
+!define DOMAIN_CLASS #E1F5FE
+!define INFRASTRUCTURE #F3E5F5
+
+' Interfaces Reutilizables (Alta Reutilización)
+package "Interfaces Reutilizables" REUSABLE_INTERFACE {
+
+    interface IAutenticable <<Reutilizable>> {
+        + autenticar(): Boolean
+        + cambiarPassword(): Boolean
+        + validarCredenciales(): Boolean
+    }
+
+    interface IAutorizable <<Reutilizable>> {
+        + tienePermiso(permiso: String): Boolean
+        + obtenerRoles(): List<String>
+        + esAutorizado(recurso: String): Boolean
+    }
+
+    interface IGestionable <<Reutilizable>> {
+        + crear(): Boolean
+        + actualizar(): Boolean
+        + eliminar(): Boolean
+        + buscar(criterio: String): List<Object>
+    }
+
+    interface INotificable <<Reutilizable>> {
+        + enviarNotificacion(mensaje: String): Boolean
+        + suscribirseAEventos(): Boolean
+    }
+}
+
+package "Clases Base Reutilizables" REUSABLE_CLASS {
+    abstract class EntidadBase <<Reutilizable>> {
+        # id: String
+        # fechaCreacion: Date
+        # fechaActualizacion: Date
+        # estado: Boolean
+        + getId(): String
+        + setEstado(estado: Boolean): void
+        + {abstract} validar(): Boolean
+    }
+
+    abstract class ComponenteNegocio <<Reutilizable>> {
+        # logger: Logger
+        # configuracion: Properties
+        + inicializar(): Boolean
+        + finalizar(): Boolean
+        + {abstract} procesar(): Boolean
+    }
+}
+
+package "Dominio de Usuarios" DOMAIN_CLASS {
+    class Usuario <<Entity>> {
+        - id: String
+        - nombre: String
+        - email: String
+        - password: String
+        - fechaCreacion: Date
+        - estado: Boolean
+        + autenticar(): Boolean
+        + cambiarPassword(): Boolean
+        + validar(): Boolean
+    }
+
+    class Vendedor <<Entity>> {
+        - codigoVendedor: String
+        - territorio: String
+        - comision: Double
+        - autorizado: Boolean
+        - fechaAutorizacion: Date
+        + realizarVenta(): Boolean
+        + consultarClientes(): List<Cliente>
+        + consultarProductos(): List<Producto>
+        + calcularComision(): Double
+    }
+
+    class EmpleadoRH <<Entity>> {
+        - cargo: String
+        - departamento: String
+        - fechaIngreso: Date
+        - nivelAutorizacion: Integer
+        + autorizarVendedor(vendedor: Vendedor): Boolean
+        + gestionarPermisos(usuario: Usuario): Boolean
+        + validarCredenciales(): Boolean
+    }
+}
+
+package "Dominio de Ventas" DOMAIN_CLASS {
+    class Cliente {
+        - direccion: String
+        - telefono: String
+        - tipoCliente: String
+        + registrar(): Boolean
+        + actualizar(): Boolean
+        + calcularDescuento(): Double
+    }
+
+    class Venta {
+        - fecha: Date
+        - total: Double
+        - descuento: Double
+        + crear(): Boolean
+        + calcularTotal(): Double
+        + procesar(): Boolean
+        + aplicarDescuento(porcentaje: Double): void
+    }
+
+    class DetalleVenta {
+        - cantidad: Integer
+        - precio: Double
+        - subtotal: Double
+        + calcularSubtotal(): Double
+    }
+}
+
+package "Dominio de Inventario" DOMAIN_CLASS {
+    class Producto {
+        - nombre: String
+        - descripcion: String
+        - precio: Double
+        - categoria: String
+        + crear(): Boolean
+        + actualizar(): Boolean
+        + consultarDisponibilidad(): Integer
+    }
+
+    class Inventario {
+    - cantidad: Integer
+    - stockMinimo: Integer
+    - stockMaximo: Integer
+    - fechaActualizacion: Date
+    + actualizarStock(): Boolean
+    + verificarDisponibilidad(): Boolean
+    + generarAlerta(): Boolean
+}
+
+class Proveedor {
+    - id: String
+    - nombre: String
+    - contacto: String
+    - direccion: String
+    - telefono: String
+    - email: String
+    + registrar(): Boolean
+    + actualizar(): Boolean
+}
+
+class OrdenCompra {
+    - id: String
+    - fecha: Date
+    - total: Double
+    - estado: String
+    + crear(): Boolean
+    + aprobar(): Boolean
+    + procesar(): Boolean
+}
+
+class DetalleOrdenCompra {
+    - cantidad: Integer
+    - precio: Double
+    - subtotal: Double
+    + calcularSubtotal(): Double
+}
+
+class Entrega {
+    - id: String
+    - fecha: Date
+    - direccion: String
+    - estado: String
+    - transportista: String
+    + crear(): Boolean
+    + programar(): Boolean
+    + confirmarEntrega(): Boolean
+}
+
+class EmpleadoRH {
+    - id: String
+    - nombre: String
+    - cargo: String
+    - departamento: String
+    - fechaIngreso: Date
+    + autorizarVendedor(): Boolean
+    + gestionarPermisos(): Boolean
+}
+
+' Relaciones con multiplicidad UML 2.5
+Usuario ||--o{ Vendedor : "1" : "0..*" : "hereda"
+Usuario ||--o{ EmpleadoRH : "1" : "0..*" : "hereda"
+
+Vendedor }o--|| EmpleadoRH : "0..*" : "1" : "autorizado por"
+Vendedor ||--o{ Venta : "1" : "0..*" : "realiza"
+Vendedor }o--o{ Cliente : "0..*" : "0..*" : "atiende"
+
+Venta ||--o{ DetalleVenta : "1" : "1..*" : "contiene"
+Venta }o--|| Cliente : "0..*" : "1" : "para"
+Venta ||--|| Entrega : "1" : "1" : "genera"
+
+DetalleVenta }o--|| Producto : "0..*" : "1" : "incluye"
+
+Producto ||--|| Inventario : "1" : "1" : "tiene"
+Inventario }o--|| Proveedor : "0..*" : "1" : "suministrado por"
+
+Proveedor ||--o{ OrdenCompra : "1" : "0..*" : "recibe"
+OrdenCompra ||--o{ DetalleOrdenCompra : "1" : "1..*" : "contiene"
+DetalleOrdenCompra }o--|| Producto : "0..*" : "1" : "solicita"
+
+Entrega }o--|| Inventario : "0..*" : "1" : "actualiza"
+
+' Implementación de interfaces reutilizables
+Usuario ..|> IAutenticable : "implements"
+Usuario ..|> IAutorizable : "implements"
+Vendedor ..|> IGestionable : "implements"
+Cliente ..|> IGestionable : "implements"
+Producto ..|> IGestionable : "implements"
+Proveedor ..|> IGestionable : "implements"
+
+@enduml
