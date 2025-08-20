@@ -1,0 +1,355 @@
+@startuml Command_Pattern_Detail
+
+!theme plain
+skinparam dpi 300
+skinparam classAttributeIconSize 0
+skinparam classFontSize 11
+skinparam packageStyle rectangle
+
+title Command Pattern - PoliMarket Complex Operations
+
+' Definición de colores
+!define COMMAND_PATTERN #F0E6FF
+!define INVOKER_CLASS #E6F3FF
+!define INTEGRATION #F0F8FF
+
+' ========== COMMAND PATTERN ==========
+package "Command Pattern" COMMAND_PATTERN {
+    interface ICommand <<Command>> {
+        + execute(): CommandResult
+        + undo(): CommandResult
+        + canUndo(): Boolean
+        + canExecute(): Boolean
+        + getCommandType(): String
+        + getExecutionTime(): Date
+        + getCommandId(): String
+        + validate(): ValidationResult
+    }
+    
+    abstract class BaseCommand <<Abstract Command>> {
+        # commandId: String
+        # executionTime: Date
+        # isExecuted: Boolean
+        # canBeUndone: Boolean
+        # executionContext: ExecutionContext
+        
+        + {abstract} execute(): CommandResult
+        + {abstract} undo(): CommandResult
+        + canUndo(): Boolean
+        + canExecute(): Boolean
+        + getCommandType(): String
+        + getExecutionTime(): Date
+        + getCommandId(): String
+        + validate(): ValidationResult
+        # logExecution(result: CommandResult): void
+        # createExecutionContext(): ExecutionContext
+        # validatePreconditions(): Boolean
+    }
+    
+    class CommandResult <<Result>> {
+        - success: Boolean
+        - message: String
+        - data: Map<String, Object>
+        - executionTime: Long
+        - errors: List<String>
+        - warnings: List<String>
+        + isSuccess(): Boolean
+        + getMessage(): String
+        + getData(): Map<String, Object>
+        + getExecutionTime(): Long
+        + getErrors(): List<String>
+        + getWarnings(): List<String>
+        + addError(error: String): void
+        + addWarning(warning: String): void
+        + addData(key: String, value: Object): void
+    }
+    
+    class ValidationResult <<Validation>> {
+        - isValid: Boolean
+        - validationErrors: List<String>
+        - validationWarnings: List<String>
+        + isValid(): Boolean
+        + getErrors(): List<String>
+        + getWarnings(): List<String>
+        + addError(error: String): void
+        + addWarning(warning: String): void
+    }
+    
+    class ExecutionContext <<Context>> {
+        - userId: String
+        - timestamp: Date
+        - correlationId: String
+        - environment: String
+        - additionalData: Map<String, Object>
+        + getUserId(): String
+        + getTimestamp(): Date
+        + getCorrelationId(): String
+        + getEnvironment(): String
+        + getAdditionalData(): Map<String, Object>
+    }
+}
+
+' ========== CONCRETE COMMANDS ==========
+package "Concrete Commands" COMMAND_PATTERN {
+    class ProcessSaleCommand <<Concrete Command>> {
+        - saleRequest: CreateSaleRequest
+        - ventasComponent: IVentasComponent
+        - inventarioComponent: IInventarioComponent
+        - originalStockLevels: Map<String, Integer>
+        - createdSaleId: String
+        
+        + execute(): CommandResult
+        + undo(): CommandResult
+        + canUndo(): Boolean
+        + canExecute(): Boolean
+        + getCommandType(): String
+        + validate(): ValidationResult
+        - validateSaleRequest(): Boolean
+        - validateInventoryAvailability(): Boolean
+        - processPayment(): Boolean
+        - updateInventory(): Boolean
+        - createSaleRecord(): String
+        - rollbackSale(): Boolean
+        - restoreInventory(): Boolean
+    }
+    
+    class UpdateInventoryCommand <<Concrete Command>> {
+        - stockUpdateRequest: StockUpdateRequest
+        - inventarioComponent: IInventarioComponent
+        - previousStockLevel: Integer
+        - updatedProductId: String
+        
+        + execute(): CommandResult
+        + undo(): CommandResult
+        + canUndo(): Boolean
+        + canExecute(): Boolean
+        + getCommandType(): String
+        + validate(): ValidationResult
+        - validateStockUpdate(): Boolean
+        - updateProductStock(): Boolean
+        - logStockMovement(): void
+        - revertStockUpdate(): Boolean
+    }
+    
+    class ApplyDiscountCommand <<Concrete Command>> {
+        - discountRequest: ApplyDiscountRequest
+        - ventasComponent: IVentasComponent
+        - originalPrice: Double
+        - discountedPrice: Double
+        - saleId: String
+        
+        + execute(): CommandResult
+        + undo(): CommandResult
+        + canUndo(): Boolean
+        + canExecute(): Boolean
+        + getCommandType(): String
+        + validate(): ValidationResult
+        - validateDiscountRules(): Boolean
+        - calculateDiscountedPrice(): Double
+        - applyDiscountToSale(): Boolean
+        - revertDiscount(): Boolean
+    }
+    
+    class CreateProductCommand <<Concrete Command>> {
+        - productRequest: CreateProductRequest
+        - productosComponent: IProductosComponent
+        - createdProductId: String
+        - factoryUsed: String
+        
+        + execute(): CommandResult
+        + undo(): CommandResult
+        + canUndo(): Boolean
+        + canExecute(): Boolean
+        + getCommandType(): String
+        + validate(): ValidationResult
+        - validateProductData(): Boolean
+        - createProductUsingFactory(): String
+        - initializeProductStock(): Boolean
+        - deleteCreatedProduct(): Boolean
+    }
+    
+    class ProcessDeliveryCommand <<Concrete Command>> {
+        - deliveryRequest: CreateDeliveryRequest
+        - entregasComponent: IEntregasComponent
+        - deliveryId: String
+        - assignedCourier: String
+        
+        + execute(): CommandResult
+        + undo(): CommandResult
+        + canUndo(): Boolean
+        + canExecute(): Boolean
+        + getCommandType(): String
+        + validate(): ValidationResult
+        - validateDeliveryRequest(): Boolean
+        - assignCourier(): String
+        - scheduleDelivery(): Boolean
+        - cancelDelivery(): Boolean
+    }
+}
+
+' ========== COMMAND MANAGEMENT ==========
+package "Command Management" INVOKER_CLASS {
+    class CommandInvoker <<Invoker>> {
+        - commandHistory: Stack<ICommand>
+        - maxHistorySize: Integer
+        - currentCommand: ICommand
+        - eventPublisher: IEventPublisher
+        
+        + executeCommand(command: ICommand): CommandResult
+        + undoLastCommand(): CommandResult
+        + redoCommand(): CommandResult
+        + canUndo(): Boolean
+        + canRedo(): Boolean
+        + getCommandHistory(): List<ICommand>
+        + clearHistory(): void
+        + getHistorySize(): Integer
+        - addToHistory(command: ICommand): void
+        - publishCommandEvent(command: ICommand, result: CommandResult): void
+        - validateCommand(command: ICommand): Boolean
+    }
+    
+    class CommandFactory <<Command Factory>> {
+        - componentRegistry: Map<String, Object>
+        - configManager: ConfigurationManager
+        
+        + createCommand(commandType: String, parameters: Map<String, Object>): ICommand
+        + getSupportedCommands(): List<String>
+        + registerCommandType(commandType: String, commandClass: Class): void
+        - createProcessSaleCommand(parameters: Map<String, Object>): ProcessSaleCommand
+        - createUpdateInventoryCommand(parameters: Map<String, Object>): UpdateInventoryCommand
+        - createApplyDiscountCommand(parameters: Map<String, Object>): ApplyDiscountCommand
+        - createCreateProductCommand(parameters: Map<String, Object>): CreateProductCommand
+        - createProcessDeliveryCommand(parameters: Map<String, Object>): ProcessDeliveryCommand
+    }
+    
+    class CommandScheduler <<Scheduler>> {
+        - scheduledCommands: Queue<ScheduledCommand>
+        - commandInvoker: CommandInvoker
+        - isRunning: Boolean
+        
+        + scheduleCommand(command: ICommand, executeAt: Date): void
+        + scheduleRecurringCommand(command: ICommand, interval: Duration): void
+        + cancelScheduledCommand(commandId: String): Boolean
+        + start(): void
+        + stop(): void
+        + getScheduledCommands(): List<ScheduledCommand>
+        - processScheduledCommands(): void
+        - executeScheduledCommand(scheduledCommand: ScheduledCommand): void
+    }
+}
+
+' ========== INTEGRATION WITH EXISTING SYSTEM ==========
+package "System Integration" INTEGRATION {
+    class VentasComponent <<Command User>> {
+        - commandInvoker: CommandInvoker
+        - commandFactory: CommandFactory
+        
+        + processSale(request: CreateSaleRequest): ApiResponse<SaleProcessingResponse>
+        + applySaleDiscount(saleId: String, discount: Double): ApiResponse<Boolean>
+        + cancelSale(saleId: String): ApiResponse<Boolean>
+        - createProcessSaleCommand(request: CreateSaleRequest): ProcessSaleCommand
+        - executeWithUndo(command: ICommand): CommandResult
+    }
+    
+    class InventarioComponent <<Command User>> {
+        - commandInvoker: CommandInvoker
+        - commandFactory: CommandFactory
+        
+        + updateStock(request: StockUpdateRequest): ApiResponse<StockUpdateResponse>
+        + bulkUpdateStock(requests: List<StockUpdateRequest>): ApiResponse<List<StockUpdateResponse>>
+        - createUpdateInventoryCommand(request: StockUpdateRequest): UpdateInventoryCommand
+        - executeBatchCommands(commands: List<ICommand>): List<CommandResult>
+    }
+    
+    class ProductosComponent <<Command User>> {
+        - commandInvoker: CommandInvoker
+        - commandFactory: CommandFactory
+        
+        + createProduct(request: CreateProductRequest): ApiResponse<Producto>
+        + bulkCreateProducts(requests: List<CreateProductRequest>): ApiResponse<List<Producto>>
+        - createCreateProductCommand(request: CreateProductRequest): CreateProductCommand
+        - executeProductCreationWorkflow(commands: List<ICommand>): List<CommandResult>
+    }
+}
+
+' ========== RELATIONSHIPS ==========
+
+' Command Pattern Relationships
+ICommand <|.. BaseCommand
+BaseCommand <|-- ProcessSaleCommand
+BaseCommand <|-- UpdateInventoryCommand
+BaseCommand <|-- ApplyDiscountCommand
+BaseCommand <|-- CreateProductCommand
+BaseCommand <|-- ProcessDeliveryCommand
+
+' Command Management
+CommandInvoker o-- ICommand
+CommandFactory ..> ICommand : creates
+CommandScheduler --> CommandInvoker : uses
+CommandScheduler o-- ICommand
+
+' Results and Context
+BaseCommand ..> CommandResult : returns
+BaseCommand ..> ValidationResult : validates
+BaseCommand --> ExecutionContext : uses
+
+' System Integration
+VentasComponent --> CommandInvoker : uses
+VentasComponent --> CommandFactory : uses
+InventarioComponent --> CommandInvoker : uses
+InventarioComponent --> CommandFactory : uses
+ProductosComponent --> CommandInvoker : uses
+ProductosComponent --> CommandFactory : uses
+
+' Command Dependencies
+ProcessSaleCommand --> IVentasComponent : executes on
+ProcessSaleCommand --> IInventarioComponent : executes on
+UpdateInventoryCommand --> IInventarioComponent : executes on
+ApplyDiscountCommand --> IVentasComponent : executes on
+CreateProductCommand --> IProductosComponent : executes on
+ProcessDeliveryCommand --> IEntregasComponent : executes on
+
+' ========== PATTERN BENEFITS ==========
+note as PatternBenefits
+    **Command Pattern Benefits**
+    
+    ✅ **Undo/Redo**: Reversible operations with full state restoration
+    ✅ **Logging**: Complete audit trail of all operations
+    ✅ **Queuing**: Commands can be queued and executed later
+    ✅ **Macro Commands**: Combine multiple commands into workflows
+    ✅ **Validation**: Pre-execution validation and error handling
+    ✅ **Scheduling**: Time-based and recurring command execution
+    
+    **Business Value**:
+    • Transaction rollback capabilities
+    • Complete operation audit trail
+    • Batch processing of operations
+    • Scheduled business processes
+    • Error recovery and compensation
+end note
+
+' ========== USAGE EXAMPLE ==========
+note as UsageExample
+    **Usage Example**:
+    
+    ```csharp
+    // Create and execute command
+    var saleCommand = commandFactory.createCommand("ProcessSale", 
+        new Dictionary<string, object> {
+            ["saleRequest"] = createSaleRequest
+        });
+    
+    var result = commandInvoker.executeCommand(saleCommand);
+    
+    if (!result.isSuccess()) {
+        // Automatic rollback if execution fails
+        commandInvoker.undoLastCommand();
+    }
+    
+    // Commands are automatically logged and can be undone
+    ```
+end note
+
+PatternBenefits -[hidden]- UsageExample
+
+@enduml

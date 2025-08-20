@@ -48,6 +48,156 @@ package "Pattern Support Components" PATTERN_COMPONENT {
     
     note right of StrategyManager
         **Strategy Pattern**
+        - VIP, Volume, Seasonal pricing
+        - Runtime strategy selection
+        - Context-aware calculations
+    end note
+
+    note right of EventSystem
+        **Observer Pattern**
+        - Pub/Sub event management
+        - Decoupled component communication
+        - Real-time notifications
+    end note
+
+    note right of ConfigManager
+        **Singleton Pattern**
+        - Centralized configuration
+        - Thread-safe instance
+        - Global system settings
+    end note
+
+    note right of CommandProcessor
+        **Command Pattern**
+        - Complex operation encapsulation
+        - Undo/Redo capabilities
+        - Operation history tracking
+    end note
+
+    note right of DecoratorChain
+        **Decorator Pattern**
+        - Audit, Logging, Validation
+        - Transparent enhancements
+        - Composable functionalities
+    end note
+}
+
+' ========== ENHANCED BUSINESS COMPONENTS ==========
+package "Enhanced Business Components" ENHANCED_COMPONENT {
+    component ProductosComponent <<Factory Enhanced>> {
+        port IProductosComponent
+        port IProductFactory
+        port IEventPublisher
+    }
+
+    component VentasComponent <<Strategy + Command Enhanced>> {
+        port IVentasComponent
+        port IPricingStrategy
+        port ICommand
+        port IEventPublisher
+    }
+
+    component InventarioComponent <<Observer Enhanced>> {
+        port IInventarioComponent
+        port IEventSubscriber
+        port IEventPublisher
+    }
+
+    component AutorizacionComponent <<Decorator Enhanced>> {
+        port IAutorizacionComponent
+        port IComponentDecorator
+        port IAuditService
+    }
+
+    component EntregasComponent <<Observer + Command Enhanced>> {
+        port IEntregasComponent
+        port IEventSubscriber
+        port ICommand
+    }
+
+    component ProveedoresComponent <<Factory + Observer Enhanced>> {
+        port ISupplierComponent
+        port ISupplierFactory
+        port IEventSubscriber
+    }
+}
+
+' ========== INFRASTRUCTURE COMPONENTS ==========
+package "Infrastructure Components" INFRASTRUCTURE {
+    component IntegracionComponent <<All Patterns Hub>> {
+        port IIntegracionComponent
+        port IEventPublisher
+        port IConfigurationProvider
+        port IComponentDecorator
+    }
+
+    component NotificacionesComponent <<Observer Enhanced>> {
+        port INotificacionesComponent
+        port IEventSubscriber
+        port INotificationStrategy
+    }
+
+    database "PoliMarket Database" as DB
+}
+
+' ========== PATTERN INTEGRATION CONNECTIONS ==========
+
+' Factory Method Connections
+FactoryManager --> ProductosComponent : provides factories
+FactoryManager --> ProveedoresComponent : supplier factories
+ProductosComponent --> AngularClient : factory-created products
+
+' Strategy Pattern Connections
+StrategyManager --> VentasComponent : pricing strategies
+VentasComponent --> ReactClient : strategy-calculated prices
+
+' Observer Pattern Connections
+EventSystem --> ProductosComponent : event publishing
+EventSystem --> VentasComponent : event publishing
+EventSystem --> InventarioComponent : event subscription
+EventSystem --> EntregasComponent : event subscription
+EventSystem --> NotificacionesComponent : event subscription
+EventSystem --> ProveedoresComponent : event subscription
+
+' Singleton Pattern Connections
+ConfigManager --> ProductosComponent : configuration
+ConfigManager --> VentasComponent : configuration
+ConfigManager --> InventarioComponent : configuration
+ConfigManager --> IntegracionComponent : configuration
+
+' Command Pattern Connections
+CommandProcessor --> VentasComponent : sale commands
+CommandProcessor --> EntregasComponent : delivery commands
+CommandProcessor --> ReactClient : command execution
+
+' Decorator Pattern Connections
+DecoratorChain --> AutorizacionComponent : security decoration
+DecoratorChain --> IntegracionComponent : audit decoration
+DecoratorChain --> AngularClient : validation decoration
+
+' Traditional Component Connections
+ProductosComponent --> DB
+VentasComponent --> DB
+InventarioComponent --> DB
+AutorizacionComponent --> DB
+EntregasComponent --> DB
+ProveedoresComponent --> DB
+
+' Client Connections
+AngularClient --> AutorizacionComponent : RF1
+AngularClient --> InventarioComponent : RF3
+ReactClient --> VentasComponent : RF2
+ReactClient --> EntregasComponent : RF4
+
+' Integration Hub Connections
+IntegracionComponent --> ProductosComponent
+IntegracionComponent --> VentasComponent
+IntegracionComponent --> InventarioComponent
+IntegracionComponent --> AutorizacionComponent
+IntegracionComponent --> EntregasComponent
+IntegracionComponent --> ProveedoresComponent
+
+@enduml
         - Pricing strategy selection
         - VIP, Volume, Seasonal discounts
         - Runtime strategy switching

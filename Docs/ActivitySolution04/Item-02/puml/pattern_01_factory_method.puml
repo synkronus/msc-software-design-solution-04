@@ -1,0 +1,229 @@
+@startuml Factory_Method_Pattern_Detail
+
+!theme plain
+skinparam dpi 300
+skinparam classAttributeIconSize 0
+skinparam classFontSize 11
+skinparam packageStyle rectangle
+
+title Factory Method Pattern - PoliMarket Product Creation
+
+' Definición de colores
+!define FACTORY_PATTERN #FFE6E6
+!define PRODUCT_CLASS #E6F3FF
+!define INTEGRATION #F0F8FF
+
+' ========== FACTORY METHOD PATTERN ==========
+package "Factory Method Pattern" FACTORY_PATTERN {
+    interface IProductFactory <<Factory>> {
+        + createProduct(request: CreateProductRequest): Producto
+        + validateProductData(request: CreateProductRequest): Boolean
+        + getSupportedCategories(): List<String>
+    }
+    
+    abstract class AbstractProductFactory <<Abstract Factory>> {
+        # configManager: ConfigurationManager
+        + {abstract} createProduct(request: CreateProductRequest): Producto
+        + validateProductData(request: CreateProductRequest): Boolean
+        # generateProductId(category: String): String
+        # setCommonProperties(product: Producto): void
+        # logProductCreation(product: Producto): void
+    }
+    
+    class ProductFactoryManager <<Factory Manager>> {
+        - factories: Map<String, IProductFactory>
+        - configManager: ConfigurationManager
+        + registerFactory(category: String, factory: IProductFactory): void
+        + getFactory(category: String): IProductFactory
+        + createProduct(request: CreateProductRequest): Producto
+        + getSupportedCategories(): List<String>
+        - selectOptimalFactory(request: CreateProductRequest): IProductFactory
+    }
+    
+    class ElectronicProductFactory <<Concrete Factory>> {
+        - warrantyService: IWarrantyService
+        + createProduct(request: CreateProductRequest): ProductoElectronico
+        + validateProductData(request: CreateProductRequest): Boolean
+        + getSupportedCategories(): List<String>
+        - validateElectronicSpecs(request: CreateProductRequest): Boolean
+        - setElectronicProperties(product: ProductoElectronico): void
+        - calculateWarrantyPeriod(product: ProductoElectronico): Integer
+    }
+    
+    class ClothingProductFactory <<Concrete Factory>> {
+        - sizeChartService: ISizeChartService
+        + createProduct(request: CreateProductRequest): ProductoRopa
+        + validateProductData(request: CreateProductRequest): Boolean
+        + getSupportedCategories(): List<String>
+        - validateClothingSpecs(request: CreateProductRequest): Boolean
+        - setClothingProperties(product: ProductoRopa): void
+        - validateSizeAvailability(product: ProductoRopa): Boolean
+    }
+    
+    class FoodProductFactory <<Concrete Factory>> {
+        - nutritionService: INutritionService
+        + createProduct(request: CreateProductRequest): ProductoAlimenticio
+        + validateProductData(request: CreateProductRequest): Boolean
+        + getSupportedCategories(): List<String>
+        - validateFoodSpecs(request: CreateProductRequest): Boolean
+        - setFoodProperties(product: ProductoAlimenticio): void
+        - calculateExpirationDate(product: ProductoAlimenticio): Date
+    }
+}
+
+' ========== PRODUCT HIERARCHY ==========
+package "Product Hierarchy" PRODUCT_CLASS {
+    abstract class Producto <<Product>> {
+        # id: String
+        # nombre: String
+        # descripcion: String
+        # precio: Double
+        # categoria: String
+        # fechaCreacion: Date
+        # estado: Boolean
+        + {abstract} validateSpecifications(): Boolean
+        + {abstract} calculateShippingCost(): Double
+        + {abstract} getProductType(): String
+        + getId(): String
+        + getPrecio(): Double
+        + getCategoria(): String
+    }
+    
+    class ProductoElectronico <<Concrete Product>> {
+        - voltaje: String
+        - garantiaMeses: Integer
+        - marca: String
+        - modelo: String
+        - potencia: Double
+        + validateSpecifications(): Boolean
+        + calculateShippingCost(): Double
+        + getProductType(): String
+        + getWarrantyInfo(): WarrantyInfo
+        + getPowerConsumption(): Double
+    }
+    
+    class ProductoRopa <<Concrete Product>> {
+        - talla: String
+        - color: String
+        - material: String
+        - temporada: String
+        - genero: String
+        + validateSpecifications(): Boolean
+        + calculateShippingCost(): Double
+        + getProductType(): String
+        + getSizeChart(): SizeChart
+        + getSeasonalDiscount(): Double
+    }
+    
+    class ProductoAlimenticio <<Concrete Product>> {
+        - fechaVencimiento: Date
+        - temperaturaAlmacenamiento: String
+        - ingredientes: List<String>
+        - valorNutricional: NutritionInfo
+        - lote: String
+        + validateSpecifications(): Boolean
+        + calculateShippingCost(): Double
+        + getProductType(): String
+        + isExpired(): Boolean
+        + getNutritionInfo(): NutritionInfo
+    }
+}
+
+' ========== INTEGRATION WITH EXISTING SYSTEM ==========
+package "System Integration" INTEGRATION {
+    class ProductosComponent <<Enhanced Component>> {
+        - factoryManager: ProductFactoryManager
+        - eventPublisher: IEventPublisher
+        - configManager: ConfigurationManager
+        - auditService: IAuditService
+        + createProduct(request: CreateProductRequest): ApiResponse<Producto>
+        + getProductById(id: String): ApiResponse<Producto>
+        + updateProduct(id: String, product: Producto): ApiResponse<Producto>
+        + deleteProduct(id: String): ApiResponse<Boolean>
+        - publishProductEvent(eventType: String, product: Producto): void
+        - validateBusinessRules(request: CreateProductRequest): Boolean
+    }
+    
+    class CreateProductRequest <<Request DTO>> {
+        + nombre: String
+        + descripcion: String
+        + precio: Double
+        + categoria: String
+        + specifications: Map<String, Object>
+        + stock: Integer
+        + stockMinimo: Integer
+        + unidadMedida: String
+        + proveedor: String
+    }
+}
+
+' ========== RELATIONSHIPS ==========
+
+' Factory Pattern Relationships
+IProductFactory <|.. AbstractProductFactory
+AbstractProductFactory <|-- ElectronicProductFactory
+AbstractProductFactory <|-- ClothingProductFactory
+AbstractProductFactory <|-- FoodProductFactory
+ProductFactoryManager o-- IProductFactory
+
+' Product Hierarchy Relationships
+Producto <|-- ProductoElectronico
+Producto <|-- ProductoRopa
+Producto <|-- ProductoAlimenticio
+
+' Factory Creates Products
+ElectronicProductFactory ..> ProductoElectronico : creates
+ClothingProductFactory ..> ProductoRopa : creates
+FoodProductFactory ..> ProductoAlimenticio : creates
+
+' System Integration
+ProductosComponent --> ProductFactoryManager : uses
+ProductosComponent --> CreateProductRequest : processes
+ProductFactoryManager --> IProductFactory : delegates to
+
+' Configuration Integration
+AbstractProductFactory --> ConfigurationManager : uses
+ProductFactoryManager --> ConfigurationManager : uses
+
+' ========== PATTERN BENEFITS ==========
+note as PatternBenefits
+    **Factory Method Pattern Benefits**
+    
+    ✅ **Flexibility**: Easy to add new product types
+    ✅ **Extensibility**: New factories without modifying existing code
+    ✅ **Validation**: Category-specific validation logic
+    ✅ **Consistency**: Standardized product creation process
+    ✅ **Testability**: Each factory can be tested independently
+    ✅ **Configuration**: Centralized factory management
+    
+    **Implementation Highlights**:
+    • Abstract factory provides common functionality
+    • Concrete factories handle specific product types
+    • Factory manager coordinates multiple factories
+    • Integration with existing CBSE architecture
+end note
+
+' ========== USAGE EXAMPLE ==========
+note as UsageExample
+    **Usage Example**:
+    
+    ```csharp
+    // Client code (ProductosComponent)
+    var request = new CreateProductRequest {
+        categoria = "Electronics",
+        nombre = "Smartphone",
+        specifications = new Dictionary<string, object> {
+            ["voltaje"] = "5V",
+            ["garantiaMeses"] = 24
+        }
+    };
+    
+    // Factory Manager selects appropriate factory
+    var factory = factoryManager.getFactory("Electronics");
+    var product = factory.createProduct(request);
+    ```
+end note
+
+PatternBenefits -[hidden]- UsageExample
+
+@enduml

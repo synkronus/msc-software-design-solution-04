@@ -1,0 +1,345 @@
+@startuml Decorator_Pattern_Detail
+
+!theme plain
+skinparam dpi 300
+skinparam classAttributeIconSize 0
+skinparam classFontSize 11
+skinparam packageStyle rectangle
+
+title Decorator Pattern - PoliMarket Cross-Cutting Concerns
+
+' Definición de colores
+!define DECORATOR_PATTERN #FFFACD
+!define COMPONENT_CLASS #E6F3FF
+!define INTEGRATION #F0F8FF
+
+' ========== DECORATOR PATTERN ==========
+package "Decorator Pattern" DECORATOR_PATTERN {
+    interface IComponentService <<Component>> {
+        + processRequest(request: ServiceRequest): ServiceResponse
+        + getServiceName(): String
+        + isAvailable(): Boolean
+        + getServiceMetadata(): ServiceMetadata
+    }
+    
+    abstract class ComponentServiceBase <<Concrete Component>> {
+        # serviceName: String
+        # isInitialized: Boolean
+        # serviceMetadata: ServiceMetadata
+        
+        + {abstract} processRequest(request: ServiceRequest): ServiceResponse
+        + getServiceName(): String
+        + isAvailable(): Boolean
+        + getServiceMetadata(): ServiceMetadata
+        # initializeService(): void
+        # validateRequest(request: ServiceRequest): Boolean
+        # createResponse(data: Object): ServiceResponse
+    }
+    
+    abstract class ServiceDecorator <<Decorator>> {
+        # decoratedService: IComponentService
+        # decoratorName: String
+        # isEnabled: Boolean
+        
+        + ServiceDecorator(service: IComponentService)
+        + processRequest(request: ServiceRequest): ServiceResponse
+        + getServiceName(): String
+        + isAvailable(): Boolean
+        + getServiceMetadata(): ServiceMetadata
+        # {abstract} beforeProcessing(request: ServiceRequest): void
+        # {abstract} afterProcessing(request: ServiceRequest, response: ServiceResponse): void
+        # {abstract} handleException(request: ServiceRequest, exception: Exception): ServiceResponse
+        # wrapResponse(response: ServiceResponse): ServiceResponse
+    }
+    
+    class ServiceRequest <<Request>> {
+        - requestId: String
+        - requestType: String
+        - userId: String
+        - timestamp: Date
+        - parameters: Map<String, Object>
+        - headers: Map<String, String>
+        - correlationId: String
+        + getRequestId(): String
+        + getRequestType(): String
+        + getUserId(): String
+        + getParameters(): Map<String, Object>
+        + getHeaders(): Map<String, String>
+        + addParameter(key: String, value: Object): void
+        + addHeader(key: String, value: String): void
+    }
+    
+    class ServiceResponse <<Response>> {
+        - responseId: String
+        - success: Boolean
+        - data: Object
+        - message: String
+        - timestamp: Date
+        - processingTime: Long
+        - errors: List<String>
+        - metadata: Map<String, Object>
+        + isSuccess(): Boolean
+        + getData(): Object
+        + getMessage(): String
+        + getProcessingTime(): Long
+        + getErrors(): List<String>
+        + addError(error: String): void
+        + addMetadata(key: String, value: Object): void
+    }
+}
+
+' ========== CONCRETE DECORATORS ==========
+package "Concrete Decorators" DECORATOR_PATTERN {
+    class AuditDecorator <<Concrete Decorator>> {
+        - auditService: IAuditService
+        - auditLevel: AuditLevel
+        - sensitiveFields: List<String>
+        
+        + processRequest(request: ServiceRequest): ServiceResponse
+        # beforeProcessing(request: ServiceRequest): void
+        # afterProcessing(request: ServiceRequest, response: ServiceResponse): void
+        # handleException(request: ServiceRequest, exception: Exception): ServiceResponse
+        - createAuditRecord(request: ServiceRequest, response: ServiceResponse): AuditRecord
+        - maskSensitiveData(data: Object): Object
+        - shouldAudit(request: ServiceRequest): Boolean
+    }
+    
+    class LoggingDecorator <<Concrete Decorator>> {
+        - logger: ILogger
+        - logLevel: LogLevel
+        - includeRequestData: Boolean
+        - includeResponseData: Boolean
+        
+        + processRequest(request: ServiceRequest): ServiceResponse
+        # beforeProcessing(request: ServiceRequest): void
+        # afterProcessing(request: ServiceRequest, response: ServiceResponse): void
+        # handleException(request: ServiceRequest, exception: Exception): ServiceResponse
+        - logRequest(request: ServiceRequest): void
+        - logResponse(response: ServiceResponse): void
+        - logException(exception: Exception): void
+        - formatLogMessage(message: String, data: Object): String
+    }
+    
+    class ValidationDecorator <<Concrete Decorator>> {
+        - validationRules: Map<String, ValidationRule>
+        - strictValidation: Boolean
+        - validationService: IValidationService
+        
+        + processRequest(request: ServiceRequest): ServiceResponse
+        # beforeProcessing(request: ServiceRequest): void
+        # afterProcessing(request: ServiceRequest, response: ServiceResponse): void
+        # handleException(request: ServiceRequest, exception: Exception): ServiceResponse
+        - validateRequest(request: ServiceRequest): ValidationResult
+        - validateResponse(response: ServiceResponse): ValidationResult
+        - applyValidationRules(data: Object, rules: List<ValidationRule>): ValidationResult
+    }
+    
+    class PerformanceDecorator <<Concrete Decorator>> {
+        - performanceMonitor: IPerformanceMonitor
+        - slowRequestThreshold: Long
+        - enableProfiling: Boolean
+        
+        + processRequest(request: ServiceRequest): ServiceResponse
+        # beforeProcessing(request: ServiceRequest): void
+        # afterProcessing(request: ServiceRequest, response: ServiceResponse): void
+        # handleException(request: ServiceRequest, exception: Exception): ServiceResponse
+        - startPerformanceTracking(request: ServiceRequest): PerformanceContext
+        - endPerformanceTracking(context: PerformanceContext): PerformanceMetrics
+        - reportSlowRequest(request: ServiceRequest, metrics: PerformanceMetrics): void
+    }
+    
+    class SecurityDecorator <<Concrete Decorator>> {
+        - securityService: ISecurityService
+        - requiredPermissions: List<String>
+        - encryptResponse: Boolean
+        
+        + processRequest(request: ServiceRequest): ServiceResponse
+        # beforeProcessing(request: ServiceRequest): void
+        # afterProcessing(request: ServiceRequest, response: ServiceResponse): void
+        # handleException(request: ServiceRequest, exception: Exception): ServiceResponse
+        - authenticateUser(request: ServiceRequest): Boolean
+        - authorizeRequest(request: ServiceRequest): Boolean
+        - encryptResponseData(response: ServiceResponse): ServiceResponse
+        - detectSecurityThreats(request: ServiceRequest): List<SecurityThreat>
+    }
+    
+    class CachingDecorator <<Concrete Decorator>> {
+        - cacheService: ICacheService
+        - cacheKeyGenerator: ICacheKeyGenerator
+        - cacheTTL: Duration
+        - cacheEnabled: Boolean
+        
+        + processRequest(request: ServiceRequest): ServiceResponse
+        # beforeProcessing(request: ServiceRequest): void
+        # afterProcessing(request: ServiceRequest, response: ServiceResponse): void
+        # handleException(request: ServiceRequest, exception: Exception): ServiceResponse
+        - generateCacheKey(request: ServiceRequest): String
+        - getCachedResponse(cacheKey: String): ServiceResponse
+        - cacheResponse(cacheKey: String, response: ServiceResponse): void
+        - shouldCache(request: ServiceRequest): Boolean
+    }
+}
+
+' ========== CONCRETE COMPONENTS ==========
+package "Concrete Components" COMPONENT_CLASS {
+    class ProductService <<Concrete Component>> {
+        - productosComponent: IProductosComponent
+        - productRepository: IProductRepository
+        
+        + processRequest(request: ServiceRequest): ServiceResponse
+        + getServiceName(): String
+        - handleCreateProduct(request: ServiceRequest): ServiceResponse
+        - handleUpdateProduct(request: ServiceRequest): ServiceResponse
+        - handleDeleteProduct(request: ServiceRequest): ServiceResponse
+        - handleGetProduct(request: ServiceRequest): ServiceResponse
+    }
+    
+    class SalesService <<Concrete Component>> {
+        - ventasComponent: IVentasComponent
+        - salesRepository: ISalesRepository
+        
+        + processRequest(request: ServiceRequest): ServiceResponse
+        + getServiceName(): String
+        - handleProcessSale(request: ServiceRequest): ServiceResponse
+        - handleCalculateTotal(request: ServiceRequest): ServiceResponse
+        - handleApplyDiscount(request: ServiceRequest): ServiceResponse
+        - handleCancelSale(request: ServiceRequest): ServiceResponse
+    }
+    
+    class InventoryService <<Concrete Component>> {
+        - inventarioComponent: IInventarioComponent
+        - inventoryRepository: IInventoryRepository
+        
+        + processRequest(request: ServiceRequest): ServiceResponse
+        + getServiceName(): String
+        - handleUpdateStock(request: ServiceRequest): ServiceResponse
+        - handleCheckAvailability(request: ServiceRequest): ServiceResponse
+        - handleGetStockLevel(request: ServiceRequest): ServiceResponse
+        - handleGenerateStockReport(request: ServiceRequest): ServiceResponse
+    }
+}
+
+' ========== INTEGRATION WITH EXISTING SYSTEM ==========
+package "System Integration" INTEGRATION {
+    class ServiceDecoratorFactory <<Factory>> {
+        - decoratorRegistry: Map<String, Class<? extends ServiceDecorator>>
+        - configManager: ConfigurationManager
+        
+        + createDecorator(decoratorType: String, service: IComponentService): ServiceDecorator
+        + createDecoratorChain(service: IComponentService, decoratorTypes: List<String>): IComponentService
+        + registerDecorator(decoratorType: String, decoratorClass: Class): void
+        + getAvailableDecorators(): List<String>
+        - instantiateDecorator(decoratorClass: Class, service: IComponentService): ServiceDecorator
+    }
+    
+    class DecoratorChainBuilder <<Builder>> {
+        - baseService: IComponentService
+        - decorators: List<String>
+        - configuration: Map<String, Object>
+        
+        + setBaseService(service: IComponentService): DecoratorChainBuilder
+        + addDecorator(decoratorType: String): DecoratorChainBuilder
+        + addDecorator(decoratorType: String, config: Map<String, Object>): DecoratorChainBuilder
+        + build(): IComponentService
+        + reset(): DecoratorChainBuilder
+        - validateChain(): Boolean
+        - optimizeChain(): List<String>
+    }
+    
+    class IntegracionComponent <<Service Manager>> {
+        - serviceRegistry: Map<String, IComponentService>
+        - decoratorFactory: ServiceDecoratorFactory
+        - chainBuilder: DecoratorChainBuilder
+        
+        + registerService(serviceName: String, service: IComponentService): void
+        + getDecoratedService(serviceName: String): IComponentService
+        + createDecoratedService(serviceName: String, decorators: List<String>): IComponentService
+        + updateServiceDecorators(serviceName: String, decorators: List<String>): void
+        - buildDefaultDecoratorChain(service: IComponentService): IComponentService
+        - getServiceConfiguration(serviceName: String): Map<String, Object>
+    }
+}
+
+' ========== RELATIONSHIPS ==========
+
+' Decorator Pattern Relationships
+IComponentService <|.. ComponentServiceBase
+IComponentService <|.. ServiceDecorator
+ServiceDecorator <|-- AuditDecorator
+ServiceDecorator <|-- LoggingDecorator
+ServiceDecorator <|-- ValidationDecorator
+ServiceDecorator <|-- PerformanceDecorator
+ServiceDecorator <|-- SecurityDecorator
+ServiceDecorator <|-- CachingDecorator
+
+' Concrete Components
+ComponentServiceBase <|-- ProductService
+ComponentServiceBase <|-- SalesService
+ComponentServiceBase <|-- InventoryService
+
+' Service Dependencies
+ServiceDecorator o-- IComponentService
+AuditDecorator --> IAuditService
+LoggingDecorator --> ILogger
+ValidationDecorator --> IValidationService
+PerformanceDecorator --> IPerformanceMonitor
+SecurityDecorator --> ISecurityService
+CachingDecorator --> ICacheService
+
+' Request/Response
+IComponentService ..> ServiceRequest : processes
+IComponentService ..> ServiceResponse : returns
+
+' Integration
+ServiceDecoratorFactory ..> ServiceDecorator : creates
+DecoratorChainBuilder --> ServiceDecoratorFactory : uses
+IntegracionComponent --> ServiceDecoratorFactory : uses
+IntegracionComponent --> DecoratorChainBuilder : uses
+IntegracionComponent o-- IComponentService
+
+' ========== PATTERN BENEFITS ==========
+note as PatternBenefits
+    **Decorator Pattern Benefits**
+    
+    ✅ **Transparent Enhancement**: Add functionality without changing core logic
+    ✅ **Flexible Composition**: Mix and match decorators as needed
+    ✅ **Runtime Configuration**: Enable/disable features dynamically
+    ✅ **Single Responsibility**: Each decorator handles one concern
+    ✅ **Open/Closed Principle**: Extend functionality without modification
+    ✅ **Reusable Components**: Decorators work with any service
+    
+    **Cross-Cutting Concerns Handled**:
+    • Audit logging and compliance
+    • Performance monitoring and profiling
+    • Security and authorization
+    • Input/output validation
+    • Caching and optimization
+    • Error handling and recovery
+end note
+
+' ========== USAGE EXAMPLE ==========
+note as UsageExample
+    **Usage Example**:
+    
+    ```csharp
+    // Build decorated service chain
+    var decoratedService = chainBuilder
+        .setBaseService(new ProductService())
+        .addDecorator("Security")
+        .addDecorator("Validation")
+        .addDecorator("Audit")
+        .addDecorator("Performance")
+        .addDecorator("Logging")
+        .build();
+    
+    // Use decorated service transparently
+    var response = decoratedService.processRequest(request);
+    
+    // All decorators automatically applied:
+    // Security → Validation → Audit → Performance → Logging → ProductService
+    ```
+end note
+
+PatternBenefits -[hidden]- UsageExample
+
+@enduml

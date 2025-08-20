@@ -1,0 +1,281 @@
+@startuml Singleton_Pattern_Detail
+
+!theme plain
+skinparam dpi 300
+skinparam classAttributeIconSize 0
+skinparam classFontSize 11
+skinparam packageStyle rectangle
+
+title Singleton Pattern - PoliMarket Configuration Management
+
+' Definición de colores
+!define SINGLETON_PATTERN #FFF0E6
+!define CONFIG_CLASS #E6F3FF
+!define INTEGRATION #F0F8FF
+
+' ========== SINGLETON PATTERN ==========
+package "Singleton Pattern" SINGLETON_PATTERN {
+    class ConfigurationManager <<Singleton>> {
+        - {static} instance: ConfigurationManager
+        - {static} lock: Object
+        - configuration: Map<String, Object>
+        - configFilePath: String
+        - lastModified: Date
+        - isInitialized: Boolean
+        
+        - ConfigurationManager()
+        + {static} getInstance(): ConfigurationManager
+        + getConfiguration(key: String): Object
+        + setConfiguration(key: String, value: Object): void
+        + loadConfiguration(): void
+        + saveConfiguration(): void
+        + reloadConfiguration(): void
+        + hasConfiguration(key: String): Boolean
+        + removeConfiguration(key: String): void
+        + getAllConfigurations(): Map<String, Object>
+        + getConfigurationKeys(): Set<String>
+        + validateConfiguration(): Boolean
+        + exportConfiguration(filePath: String): void
+        + importConfiguration(filePath: String): void
+        - initializeDefaultConfiguration(): void
+        - validateConfigurationValue(key: String, value: Object): Boolean
+        - notifyConfigurationChange(key: String, oldValue: Object, newValue: Object): void
+    }
+    
+    interface IConfigurationProvider <<Configuration Interface>> {
+        + getConfiguration(key: String): Object
+        + hasConfiguration(key: String): Boolean
+        + getAllConfigurations(): Map<String, Object>
+        + validateConfiguration(): Boolean
+    }
+    
+    class ConfigurationSection <<Configuration Data>> {
+        - sectionName: String
+        - properties: Map<String, Object>
+        - isRequired: Boolean
+        - defaultValues: Map<String, Object>
+        + getSectionName(): String
+        + getProperty(key: String): Object
+        + setProperty(key: String, value: Object): void
+        + hasProperty(key: String): Boolean
+        + validateSection(): Boolean
+        + getRequiredProperties(): List<String>
+        + applyDefaults(): void
+    }
+}
+
+' ========== CONFIGURATION SECTIONS ==========
+package "Configuration Sections" CONFIG_CLASS {
+    class DatabaseConfiguration <<Config Section>> {
+        - connectionString: String
+        - maxPoolSize: Integer
+        - commandTimeout: Integer
+        - retryAttempts: Integer
+        + getConnectionString(): String
+        + getMaxPoolSize(): Integer
+        + getCommandTimeout(): Integer
+        + validateDatabaseConfig(): Boolean
+    }
+    
+    class AuthorizationConfiguration <<Config Section>> {
+        - maxLoginAttempts: Integer
+        - tokenExpirationMinutes: Integer
+        - requireEmailVerification: Boolean
+        - passwordComplexityRules: Map<String, Object>
+        + getMaxLoginAttempts(): Integer
+        + getTokenExpirationMinutes(): Integer
+        + isEmailVerificationRequired(): Boolean
+        + getPasswordRules(): Map<String, Object>
+        + validateAuthConfig(): Boolean
+    }
+    
+    class SalesConfiguration <<Config Section>> {
+        - maxDiscountPercentage: Double
+        - taxRate: Double
+        - allowNegativeInventory: Boolean
+        - defaultPaymentMethod: String
+        - supportedCurrencies: List<String>
+        + getMaxDiscountPercentage(): Double
+        + getTaxRate(): Double
+        + isNegativeInventoryAllowed(): Boolean
+        + getDefaultPaymentMethod(): String
+        + getSupportedCurrencies(): List<String>
+        + validateSalesConfig(): Boolean
+    }
+    
+    class InventoryConfiguration <<Config Section>> {
+        - lowStockThreshold: Integer
+        - autoReorderEnabled: Boolean
+        - reorderQuantity: Integer
+        - stockUpdateBatchSize: Integer
+        + getLowStockThreshold(): Integer
+        + isAutoReorderEnabled(): Boolean
+        + getReorderQuantity(): Integer
+        + getStockUpdateBatchSize(): Integer
+        + validateInventoryConfig(): Boolean
+    }
+    
+    class NotificationConfiguration <<Config Section>> {
+        - emailEnabled: Boolean
+        - smsEnabled: Boolean
+        - pushNotificationEnabled: Boolean
+        - emailTemplatesPath: String
+        - notificationRetryAttempts: Integer
+        + isEmailEnabled(): Boolean
+        + isSmsEnabled(): Boolean
+        + isPushNotificationEnabled(): Boolean
+        + getEmailTemplatesPath(): String
+        + getNotificationRetryAttempts(): Integer
+        + validateNotificationConfig(): Boolean
+    }
+}
+
+' ========== INTEGRATION WITH EXISTING SYSTEM ==========
+package "System Integration" INTEGRATION {
+    class ProductosComponent <<Config Consumer>> {
+        - configManager: ConfigurationManager
+        + createProduct(request: CreateProductRequest): ApiResponse<Producto>
+        - getProductConfiguration(): ConfigurationSection
+        - validateProductRules(product: Producto): Boolean
+        - getMaxProductsPerCategory(): Integer
+        - getDefaultProductSettings(): Map<String, Object>
+    }
+    
+    class VentasComponent <<Config Consumer>> {
+        - configManager: ConfigurationManager
+        + processSale(request: CreateSaleRequest): ApiResponse<SaleProcessingResponse>
+        - getSalesConfiguration(): SalesConfiguration
+        - getMaxDiscountAllowed(): Double
+        - getTaxRateForRegion(region: String): Double
+        - isPaymentMethodSupported(method: String): Boolean
+    }
+    
+    class InventarioComponent <<Config Consumer>> {
+        - configManager: ConfigurationManager
+        + updateStock(request: StockUpdateRequest): ApiResponse<StockUpdateResponse>
+        - getInventoryConfiguration(): InventoryConfiguration
+        - getLowStockThreshold(productId: String): Integer
+        - shouldAutoReorder(productId: String): Boolean
+        - getReorderQuantity(productId: String): Integer
+    }
+    
+    class AutorizacionComponent <<Config Consumer>> {
+        - configManager: ConfigurationManager
+        + validateAuthorization(request: AuthorizationRequest): ApiResponse<AuthorizationResponse>
+        - getAuthConfiguration(): AuthorizationConfiguration
+        - getMaxLoginAttempts(): Integer
+        - getTokenExpirationTime(): Integer
+        - getPasswordComplexityRules(): Map<String, Object>
+    }
+    
+    class IntegracionComponent <<Config Manager>> {
+        - configManager: ConfigurationManager
+        + initializeSystem(): ApiResponse<Boolean>
+        + updateSystemConfiguration(config: Map<String, Object>): ApiResponse<Boolean>
+        + getSystemHealth(): ApiResponse<SystemHealthStatus>
+        - loadAllConfigurations(): void
+        - validateSystemConfiguration(): Boolean
+        - backupConfiguration(): void
+        - restoreConfiguration(backupPath: String): void
+    }
+}
+
+' ========== RELATIONSHIPS ==========
+
+' Singleton Pattern Relationships
+ConfigurationManager ..|> IConfigurationProvider
+ConfigurationManager o-- ConfigurationSection
+
+' Configuration Sections
+ConfigurationSection <|-- DatabaseConfiguration
+ConfigurationSection <|-- AuthorizationConfiguration
+ConfigurationSection <|-- SalesConfiguration
+ConfigurationSection <|-- InventoryConfiguration
+ConfigurationSection <|-- NotificationConfiguration
+
+' System Integration - All components use ConfigurationManager
+ProductosComponent --> ConfigurationManager : uses
+VentasComponent --> ConfigurationManager : uses
+InventarioComponent --> ConfigurationManager : uses
+AutorizacionComponent --> ConfigurationManager : uses
+IntegracionComponent --> ConfigurationManager : manages
+
+' Configuration Dependencies
+VentasComponent --> SalesConfiguration : uses
+InventarioComponent --> InventoryConfiguration : uses
+AutorizacionComponent --> AuthorizationConfiguration : uses
+
+' Singleton Instance Relationships
+ConfigurationManager --> ConfigurationManager : instance
+
+' ========== THREAD SAFETY ==========
+note as ThreadSafety
+    **Thread Safety Implementation**
+    
+    ```csharp
+    private static ConfigurationManager instance;
+    private static readonly object lockObject = new object();
+    
+    public static ConfigurationManager getInstance() {
+        if (instance == null) {
+            lock (lockObject) {
+                if (instance == null) {
+                    instance = new ConfigurationManager();
+                }
+            }
+        }
+        return instance;
+    }
+    ```
+    
+    **Double-Checked Locking Pattern**:
+    ✅ Thread-safe singleton creation
+    ✅ Minimal performance overhead
+    ✅ Lazy initialization
+end note
+
+' ========== PATTERN BENEFITS ==========
+note as PatternBenefits
+    **Singleton Pattern Benefits**
+    
+    ✅ **Global Access**: Single point of access to configuration
+    ✅ **Memory Efficiency**: Only one instance in memory
+    ✅ **Consistency**: Same configuration across all components
+    ✅ **Thread Safety**: Safe concurrent access
+    ✅ **Lazy Loading**: Instance created only when needed
+    ✅ **Centralized Management**: All configuration in one place
+    
+    **Business Value**:
+    • Consistent system behavior
+    • Easy configuration management
+    • Reduced memory footprint
+    • Simplified deployment configuration
+    • Environment-specific settings
+end note
+
+' ========== USAGE EXAMPLE ==========
+note as UsageExample
+    **Usage Example**:
+    
+    ```csharp
+    // Get singleton instance
+    var configManager = ConfigurationManager.getInstance();
+    
+    // Access configuration
+    var maxDiscount = (double)configManager
+        .getConfiguration("Sales.MaxDiscountPercentage");
+    
+    var taxRate = (double)configManager
+        .getConfiguration("Sales.TaxRate");
+    
+    // Update configuration
+    configManager.setConfiguration("Sales.TaxRate", 0.21);
+    
+    // All components automatically use updated configuration
+    ```
+end note
+
+ThreadSafety -[hidden]- PatternBenefits
+PatternBenefits -[hidden]- UsageExample
+
+@enduml
