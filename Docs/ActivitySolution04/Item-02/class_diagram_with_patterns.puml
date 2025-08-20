@@ -1,0 +1,421 @@
+@startuml PoliMarket_Class_Diagram_With_GoF_Patterns
+
+!theme plain
+title PoliMarket - Diagrama de Clases con Patrones GoF Integrados (Unit 4)
+
+' Definición de colores para patrones GoF
+!define FACTORY_PATTERN #FFE6E6
+!define STRATEGY_PATTERN #E6F3FF
+!define OBSERVER_PATTERN #E6FFE6
+!define SINGLETON_PATTERN #FFF0E6
+!define COMMAND_PATTERN #F0E6FF
+!define DECORATOR_PATTERN #FFFFE6
+!define EXISTING_CLASS #F5F5F5
+
+' ========== FACTORY METHOD PATTERN ==========
+package "Factory Method Pattern" FACTORY_PATTERN {
+    interface IProductFactory <<Factory>> {
+        + createProduct(type: String, data: ProductData): Producto
+        + getSupportedTypes(): List<String>
+    }
+    
+    class ProductFactoryManager <<Factory>> {
+        - factories: Map<String, IProductFactory>
+        + registerFactory(type: String, factory: IProductFactory): void
+        + getFactory(type: String): IProductFactory
+        + createProduct(type: String, data: ProductData): Producto
+    }
+    
+    class ElectronicProductFactory <<Factory>> {
+        + createProduct(type: String, data: ProductData): ProductoElectronico
+        + getSupportedTypes(): List<String>
+        - validateElectronicSpecs(data: ProductData): Boolean
+    }
+    
+    class ClothingProductFactory <<Factory>> {
+        + createProduct(type: String, data: ProductData): ProductoRopa
+        + getSupportedTypes(): List<String>
+        - validateClothingSpecs(data: ProductData): Boolean
+    }
+    
+    class FoodProductFactory <<Factory>> {
+        + createProduct(type: String, data: ProductData): ProductoAlimenticio
+        + getSupportedTypes(): List<String>
+        - validateFoodSpecs(data: ProductData): Boolean
+    }
+}
+
+' ========== STRATEGY PATTERN ==========
+package "Strategy Pattern" STRATEGY_PATTERN {
+    interface IPricingStrategy <<Strategy>> {
+        + calculatePrice(basePrice: Double, context: PricingContext): Double
+        + getStrategyName(): String
+        + isApplicable(context: PricingContext): Boolean
+    }
+    
+    class PricingContext <<Strategy>> {
+        + cliente: Cliente
+        + producto: Producto
+        + cantidad: Integer
+        + fechaVenta: Date
+        + tipoDescuento: String
+    }
+    
+    class RegularPricingStrategy <<Strategy>> {
+        + calculatePrice(basePrice: Double, context: PricingContext): Double
+        + getStrategyName(): String
+        + isApplicable(context: PricingContext): Boolean
+    }
+    
+    class VIPDiscountStrategy <<Strategy>> {
+        - discountPercentage: Double
+        + calculatePrice(basePrice: Double, context: PricingContext): Double
+        + getStrategyName(): String
+        + isApplicable(context: PricingContext): Boolean
+    }
+    
+    class VolumeDiscountStrategy <<Strategy>> {
+        - volumeThresholds: Map<Integer, Double>
+        + calculatePrice(basePrice: Double, context: PricingContext): Double
+        + getStrategyName(): String
+        + isApplicable(context: PricingContext): Boolean
+    }
+    
+    class SeasonalDiscountStrategy <<Strategy>> {
+        - seasonalRates: Map<String, Double>
+        + calculatePrice(basePrice: Double, context: PricingContext): Double
+        + getStrategyName(): String
+        + isApplicable(context: PricingContext): Boolean
+    }
+    
+    class StrategyManager <<Strategy>> {
+        - strategies: List<IPricingStrategy>
+        + addStrategy(strategy: IPricingStrategy): void
+        + selectStrategy(context: PricingContext): IPricingStrategy
+        + calculateOptimalPrice(basePrice: Double, context: PricingContext): Double
+    }
+}
+
+' ========== OBSERVER PATTERN ==========
+package "Observer Pattern" OBSERVER_PATTERN {
+    interface IEventPublisher <<Observer>> {
+        + subscribe(eventType: String, observer: IEventSubscriber): void
+        + unsubscribe(eventType: String, observer: IEventSubscriber): void
+        + publish(event: ComponentEvent): void
+    }
+    
+    interface IEventSubscriber <<Observer>> {
+        + update(event: ComponentEvent): void
+        + getSubscribedEvents(): List<String>
+    }
+    
+    class EventManager <<Observer>> {
+        - subscribers: Map<String, List<IEventSubscriber>>
+        + subscribe(eventType: String, observer: IEventSubscriber): void
+        + unsubscribe(eventType: String, observer: IEventSubscriber): void
+        + publish(event: ComponentEvent): void
+        - notifySubscribers(event: ComponentEvent): void
+    }
+    
+    class ComponentEvent <<Observer>> {
+        + eventType: String
+        + source: String
+        + data: Map<String, Object>
+        + timestamp: DateTime
+        + correlationId: String
+    }
+    
+    class InventoryObserver <<Observer>> {
+        + update(event: ComponentEvent): void
+        + getSubscribedEvents(): List<String>
+        - handleStockChange(event: ComponentEvent): void
+        - generateStockAlert(event: ComponentEvent): void
+    }
+    
+    class NotificationObserver <<Observer>> {
+        + update(event: ComponentEvent): void
+        + getSubscribedEvents(): List<String>
+        - sendNotification(event: ComponentEvent): void
+    }
+    
+    class AuditObserver <<Observer>> {
+        + update(event: ComponentEvent): void
+        + getSubscribedEvents(): List<String>
+        - logAuditEvent(event: ComponentEvent): void
+    }
+}
+
+' ========== SINGLETON PATTERN ==========
+package "Singleton Pattern" SINGLETON_PATTERN {
+    class ConfigurationManager <<Singleton>> {
+        - {static} instance: ConfigurationManager
+        - configuration: Map<String, Object>
+        - ConfigurationManager()
+        + {static} getInstance(): ConfigurationManager
+        + getConfiguration(key: String): Object
+        + setConfiguration(key: String, value: Object): void
+        + loadConfiguration(source: String): void
+        + saveConfiguration(): void
+    }
+    
+    interface IConfigurationProvider <<Singleton>> {
+        + getConfiguration(key: String): Object
+        + hasConfiguration(key: String): Boolean
+    }
+}
+
+' ========== COMMAND PATTERN ==========
+package "Command Pattern" COMMAND_PATTERN {
+    interface ICommand <<Command>> {
+        + execute(): CommandResult
+        + undo(): CommandResult
+        + canUndo(): Boolean
+        + getCommandType(): String
+    }
+    
+    class CommandResult <<Command>> {
+        + success: Boolean
+        + message: String
+        + data: Object
+        + executionTime: Long
+        + errors: List<String>
+    }
+    
+    class ProcessSaleCommand <<Command>> {
+        - saleRequest: CreateSaleRequest
+        - ventasComponent: VentasComponent
+        - inventarioComponent: InventarioComponent
+        + execute(): CommandResult
+        + undo(): CommandResult
+        + canUndo(): Boolean
+        + getCommandType(): String
+    }
+    
+    class UpdateInventoryCommand <<Command>> {
+        - updateRequest: StockUpdateRequest
+        - inventarioComponent: InventarioComponent
+        - previousState: InventoryState
+        + execute(): CommandResult
+        + undo(): CommandResult
+        + canUndo(): Boolean
+        + getCommandType(): String
+    }
+    
+    class ApplyDiscountCommand <<Command>> {
+        - discountRequest: DiscountRequest
+        - ventasComponent: VentasComponent
+        - originalPrice: Double
+        + execute(): CommandResult
+        + undo(): CommandResult
+        + canUndo(): Boolean
+        + getCommandType(): String
+    }
+    
+    class CommandInvoker <<Command>> {
+        - commandHistory: List<ICommand>
+        - maxHistorySize: Integer
+        + executeCommand(command: ICommand): CommandResult
+        + undoLastCommand(): CommandResult
+        + getCommandHistory(): List<ICommand>
+        + clearHistory(): void
+    }
+}
+
+' ========== DECORATOR PATTERN ==========
+package "Decorator Pattern" DECORATOR_PATTERN {
+    interface IComponentDecorator <<Decorator>> {
+        + process(request: ComponentRequest): ComponentResponse
+    }
+    
+    abstract class ComponentDecoratorBase <<Decorator>> {
+        # component: IComponentDecorator
+        + ComponentDecoratorBase(component: IComponentDecorator)
+        + process(request: ComponentRequest): ComponentResponse
+    }
+    
+    class AuditDecorator <<Decorator>> {
+        - auditService: IAuditService
+        + AuditDecorator(component: IComponentDecorator, auditService: IAuditService)
+        + process(request: ComponentRequest): ComponentResponse
+        - logAuditInfo(request: ComponentRequest, response: ComponentResponse): void
+    }
+    
+    class LoggingDecorator <<Decorator>> {
+        - logger: ILogger
+        + LoggingDecorator(component: IComponentDecorator, logger: ILogger)
+        + process(request: ComponentRequest): ComponentResponse
+        - logRequest(request: ComponentRequest): void
+        - logResponse(response: ComponentResponse): void
+    }
+    
+    class ValidationDecorator <<Decorator>> {
+        - validator: IValidator
+        + ValidationDecorator(component: IComponentDecorator, validator: IValidator)
+        + process(request: ComponentRequest): ComponentResponse
+        - validateRequest(request: ComponentRequest): ValidationResult
+    }
+    
+    class PerformanceDecorator <<Decorator>> {
+        - performanceMonitor: IPerformanceMonitor
+        + PerformanceDecorator(component: IComponentDecorator, monitor: IPerformanceMonitor)
+        + process(request: ComponentRequest): ComponentResponse
+        - measurePerformance(operation: Function): PerformanceMetrics
+    }
+}
+
+' ========== EXISTING DOMAIN CLASSES (UPDATED) ==========
+package "Enhanced Domain Classes" EXISTING_CLASS {
+    class ProductosComponent <<Component>> {
+        - factoryManager: ProductFactoryManager
+        - eventPublisher: IEventPublisher
+        - configManager: ConfigurationManager
+        + createProduct(request: CreateProductRequest): ApiResponse<Producto>
+        + getProductById(id: String): ApiResponse<Producto>
+        + updateProduct(id: String, product: Producto): ApiResponse<Producto>
+        - publishProductEvent(eventType: String, product: Producto): void
+    }
+    
+    class VentasComponent <<Component>> {
+        - strategyManager: StrategyManager
+        - commandInvoker: CommandInvoker
+        - eventPublisher: IEventPublisher
+        + processeSale(request: CreateSaleRequest): ApiResponse<SaleProcessingResponse>
+        + calculateTotal(details: List<SaleDetailRequest>): ApiResponse<Double>
+        + applyDiscount(saleId: String, discount: Double): ApiResponse<Venta>
+        - selectPricingStrategy(context: PricingContext): IPricingStrategy
+    }
+    
+    class InventarioComponent <<Component>> {
+        - eventPublisher: IEventPublisher
+        - configManager: ConfigurationManager
+        + updateStock(request: StockUpdateRequest): ApiResponse<Boolean>
+        + checkAvailability(request: AvailabilityCheckRequest): ApiResponse<DisponibilidadInventario>
+        + generateStockAlerts(): ApiResponse<List<AlertaStock>>
+        - publishInventoryEvent(eventType: String, data: Object): void
+    }
+    
+    abstract class Producto <<Entity>> {
+        # id: String
+        # nombre: String
+        # descripcion: String
+        # precio: Double
+        # categoria: String
+        # fechaCreacion: Date
+        + {abstract} validateSpecifications(): Boolean
+        + {abstract} calculateShippingCost(): Double
+    }
+    
+    class ProductoElectronico <<Entity>> {
+        - voltaje: String
+        - garantiaMeses: Integer
+        - marca: String
+        + validateSpecifications(): Boolean
+        + calculateShippingCost(): Double
+        + getWarrantyInfo(): WarrantyInfo
+    }
+    
+    class ProductoRopa <<Entity>> {
+        - talla: String
+        - color: String
+        - material: String
+        - temporada: String
+        + validateSpecifications(): Boolean
+        + calculateShippingCost(): Double
+        + getSizeChart(): SizeChart
+    }
+    
+    class ProductoAlimenticio <<Entity>> {
+        - fechaVencimiento: Date
+        - temperaturaAlmacenamiento: String
+        - ingredientes: List<String>
+        + validateSpecifications(): Boolean
+        + calculateShippingCost(): Double
+        + isExpired(): Boolean
+    }
+    
+    class Venta <<Entity>> {
+        - id: String
+        - fecha: Date
+        - total: Double
+        - descuento: Double
+        - estado: String
+        - pricingStrategy: String
+        + calcularTotal(): Double
+        + aplicarDescuento(porcentaje: Double): void
+        + getPricingStrategyUsed(): String
+    }
+    
+    class Cliente <<Entity>> {
+        - id: String
+        - nombre: String
+        - tipoCliente: String
+        - limiteCredito: Double
+        + getDiscountEligibility(): DiscountEligibility
+        + isVIP(): Boolean
+        + getCreditLimit(): Double
+    }
+}
+
+' ========== PATTERN RELATIONSHIPS ==========
+
+' Factory Method Relationships
+IProductFactory <|.. ElectronicProductFactory
+IProductFactory <|.. ClothingProductFactory
+IProductFactory <|.. FoodProductFactory
+ProductFactoryManager o-- IProductFactory
+ProductosComponent --> ProductFactoryManager
+
+' Strategy Relationships
+IPricingStrategy <|.. RegularPricingStrategy
+IPricingStrategy <|.. VIPDiscountStrategy
+IPricingStrategy <|.. VolumeDiscountStrategy
+IPricingStrategy <|.. SeasonalDiscountStrategy
+StrategyManager o-- IPricingStrategy
+VentasComponent --> StrategyManager
+VentasComponent --> PricingContext
+
+' Observer Relationships
+IEventPublisher <|.. EventManager
+IEventSubscriber <|.. InventoryObserver
+IEventSubscriber <|.. NotificationObserver
+IEventSubscriber <|.. AuditObserver
+EventManager o-- IEventSubscriber
+ProductosComponent --> IEventPublisher
+VentasComponent --> IEventPublisher
+InventarioComponent --> IEventPublisher
+
+' Singleton Relationships
+ConfigurationManager ..|> IConfigurationProvider
+ProductosComponent --> ConfigurationManager
+VentasComponent --> ConfigurationManager
+InventarioComponent --> ConfigurationManager
+
+' Command Relationships
+ICommand <|.. ProcessSaleCommand
+ICommand <|.. UpdateInventoryCommand
+ICommand <|.. ApplyDiscountCommand
+CommandInvoker o-- ICommand
+VentasComponent --> CommandInvoker
+
+' Decorator Relationships
+IComponentDecorator <|.. ComponentDecoratorBase
+ComponentDecoratorBase <|-- AuditDecorator
+ComponentDecoratorBase <|-- LoggingDecorator
+ComponentDecoratorBase <|-- ValidationDecorator
+ComponentDecoratorBase <|-- PerformanceDecorator
+
+' Domain Relationships
+Producto <|-- ProductoElectronico
+Producto <|-- ProductoRopa
+Producto <|-- ProductoAlimenticio
+ElectronicProductFactory ..> ProductoElectronico : creates
+ClothingProductFactory ..> ProductoRopa : creates
+FoodProductFactory ..> ProductoAlimenticio : creates
+
+' Enhanced Domain Relationships
+VentasComponent --> Cliente
+VentasComponent --> Venta
+ProductosComponent --> Producto
+InventarioComponent --> Producto
+
+@enduml

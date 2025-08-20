@@ -1,0 +1,324 @@
+@startuml PoliMarket_Components_Diagram_With_GoF_Patterns
+
+!theme plain
+title PoliMarket - Arquitectura de Componentes con Patrones GoF Integrados (Unit 4)
+
+' Definición de colores para patrones y componentes
+!define PATTERN_COMPONENT #FFE6CC
+!define ENHANCED_COMPONENT #E6F3FF
+!define EXISTING_COMPONENT #F0F8FF
+!define INFRASTRUCTURE #E1F5FE
+!define PRESENTATION #F3E5F5
+
+' ========== PRESENTATION LAYER ==========
+package "Presentation Layer" PRESENTATION {
+    [Angular Client] as AngularClient <<Enhanced>>
+    [React Client] as ReactClient <<Enhanced>>
+    
+    note top of AngularClient
+        **Enhanced with Patterns**
+        - Uses Factory for product creation
+        - Observes inventory events
+        - Decorated with audit/logging
+    end note
+    
+    note top of ReactClient
+        **Enhanced with Patterns**
+        - Uses Strategy for pricing
+        - Commands for sales processing
+        - Observes delivery events
+    end note
+}
+
+' ========== PATTERN SUPPORT LAYER ==========
+package "Pattern Support Components" PATTERN_COMPONENT {
+    [Pattern Factory Manager] as FactoryManager <<Factory Method>>
+    [Strategy Manager] as StrategyManager <<Strategy>>
+    [Event System] as EventSystem <<Observer>>
+    [Configuration Manager] as ConfigManager <<Singleton>>
+    [Command Processor] as CommandProcessor <<Command>>
+    [Decorator Chain] as DecoratorChain <<Decorator>>
+    
+    note right of FactoryManager
+        **Factory Method Pattern**
+        - Manages product factories
+        - Electronic, Clothing, Food factories
+        - Extensible for new product types
+    end note
+    
+    note right of StrategyManager
+        **Strategy Pattern**
+        - Pricing strategy selection
+        - VIP, Volume, Seasonal discounts
+        - Runtime strategy switching
+    end note
+    
+    note right of EventSystem
+        **Observer Pattern**
+        - Event publication/subscription
+        - Asynchronous notifications
+        - Decoupled communication
+    end note
+    
+    note right of ConfigManager
+        **Singleton Pattern**
+        - Global configuration access
+        - Thread-safe implementation
+        - Centralized settings
+    end note
+    
+    note right of CommandProcessor
+        **Command Pattern**
+        - Operation encapsulation
+        - Undo/Redo capability
+        - Audit trail
+    end note
+    
+    note right of DecoratorChain
+        **Decorator Pattern**
+        - Cross-cutting concerns
+        - Audit, Logging, Validation
+        - Transparent functionality
+    end note
+}
+
+' ========== ENHANCED BUSINESS COMPONENTS ==========
+package "Enhanced Business Components" ENHANCED_COMPONENT {
+    [Products Component] as ProductsComp <<Enhanced with Factory>>
+    [Sales Component] as SalesComp <<Enhanced with Strategy+Command>>
+    [Inventory Component] as InventoryComp <<Enhanced with Observer>>
+    [Authorization Component] as AuthComp <<Enhanced with Decorator>>
+    [Customers Component] as CustomersComp <<Enhanced with Decorator>>
+    
+    note bottom of ProductsComp
+        **Factory Method Integration**
+        - Uses FactoryManager for product creation
+        - Specialized factories by category
+        - Publishes product events
+    end note
+    
+    note bottom of SalesComp
+        **Multiple Patterns Integration**
+        - Strategy: Flexible pricing algorithms
+        - Command: Complex sales operations
+        - Observer: Sales event publishing
+    end note
+    
+    note bottom of InventoryComp
+        **Observer Integration**
+        - Publishes stock change events
+        - Notifies multiple subscribers
+        - Real-time inventory updates
+    end note
+    
+    note bottom of AuthComp
+        **Decorator Integration**
+        - Audit decorator for security
+        - Logging decorator for tracking
+        - Validation decorator for rules
+    end note
+}
+
+' ========== EXISTING COMPONENTS (MAINTAINED) ==========
+package "Existing Components" EXISTING_COMPONENT {
+    [Delivery Component] as DeliveryComp <<Maintained>>
+    [Suppliers Component] as SuppliersComp <<Maintained>>
+    [Notifications Component] as NotificationsComp <<Observer Subscriber>>
+    [Integration Component] as IntegrationComp <<Enhanced>>
+    
+    note bottom of NotificationsComp
+        **Observer Subscriber**
+        - Subscribes to business events
+        - Sends notifications based on events
+        - Email, SMS, Push notifications
+    end note
+    
+    note bottom of IntegrationComp
+        **Configuration Integration**
+        - Uses ConfigManager singleton
+        - Manages component integration
+        - Health monitoring
+    end note
+}
+
+' ========== INFRASTRUCTURE LAYER ==========
+package "Infrastructure Layer" INFRASTRUCTURE {
+    [Audit Service] as AuditService <<Enhanced>>
+    [Logging Service] as LoggingService <<Enhanced>>
+    [Validation Service] as ValidationService <<Enhanced>>
+    [Performance Monitor] as PerfMonitor <<New>>
+    
+    database "PoliMarket Database" as Database
+    
+    note right of AuditService
+        **Decorator Support**
+        - Used by AuditDecorator
+        - Comprehensive audit trails
+        - Security compliance
+    end note
+}
+
+' ========== INTERFACES ==========
+interface "IProductFactory" as IProductFactory
+interface "IPricingStrategy" as IPricingStrategy
+interface "IEventPublisher" as IEventPublisher
+interface "IEventSubscriber" as IEventSubscriber
+interface "ICommand" as ICommand
+interface "IComponentDecorator" as IComponentDecorator
+interface "IConfigurationProvider" as IConfigProvider
+
+' ========== PATTERN COMPONENT RELATIONSHIPS ==========
+
+' Factory Method Pattern Flow
+AngularClient --> IProductFactory
+IProductFactory <-- FactoryManager
+FactoryManager --> ProductsComp
+ProductsComp --> Database
+
+' Strategy Pattern Flow
+ReactClient --> IPricingStrategy
+IPricingStrategy <-- StrategyManager
+StrategyManager --> SalesComp
+SalesComp --> CustomersComp
+
+' Observer Pattern Flow
+ProductsComp --> IEventPublisher
+SalesComp --> IEventPublisher
+InventoryComp --> IEventPublisher
+IEventPublisher <-- EventSystem
+EventSystem --> IEventSubscriber
+IEventSubscriber <-- NotificationsComp
+IEventSubscriber <-- InventoryComp
+IEventSubscriber <-- IntegrationComp
+
+' Singleton Pattern Flow
+ProductsComp --> IConfigProvider
+SalesComp --> IConfigProvider
+InventoryComp --> IConfigProvider
+AuthComp --> IConfigProvider
+IConfigProvider <-- ConfigManager
+
+' Command Pattern Flow
+ReactClient --> ICommand
+ICommand <-- CommandProcessor
+CommandProcessor --> SalesComp
+CommandProcessor --> InventoryComp
+
+' Decorator Pattern Flow
+AngularClient --> IComponentDecorator
+ReactClient --> IComponentDecorator
+IComponentDecorator <-- DecoratorChain
+DecoratorChain --> AuditService
+DecoratorChain --> LoggingService
+DecoratorChain --> ValidationService
+DecoratorChain --> PerfMonitor
+
+' Enhanced Component Relationships
+ProductsComp --> FactoryManager
+SalesComp --> StrategyManager
+SalesComp --> CommandProcessor
+InventoryComp --> EventSystem
+AuthComp --> DecoratorChain
+CustomersComp --> DecoratorChain
+
+' Infrastructure Relationships
+AuditService --> Database
+LoggingService --> Database
+ValidationService --> ConfigManager
+PerfMonitor --> Database
+
+' Cross-Component Communication (Enhanced)
+SalesComp --> InventoryComp : "stock updates via commands"
+SalesComp --> CustomersComp : "customer validation"
+ProductsComp --> InventoryComp : "product-inventory sync"
+AuthComp --> SalesComp : "authorization validation"
+
+' Event-Based Communication
+EventSystem ..> NotificationsComp : "stock alerts"
+EventSystem ..> IntegrationComp : "system events"
+EventSystem ..> AuditService : "audit events"
+
+' ========== PATTERN BENEFITS ANNOTATION ==========
+note as PatternBenefits
+    **Benefits of GoF Patterns Integration**
+    
+    **Factory Method:**
+    • Extensible product creation
+    • Category-specific validation
+    • Reduced coupling in ProductsComponent
+    
+    **Strategy:**
+    • Flexible pricing algorithms
+    • Runtime strategy selection
+    • Easy addition of new discount types
+    
+    **Observer:**
+    • Decoupled event communication
+    • Real-time notifications
+    • Scalable event handling
+    
+    **Singleton:**
+    • Centralized configuration
+    • Consistent settings access
+    • Thread-safe implementation
+    
+    **Command:**
+    • Encapsulated operations
+    • Undo/Redo capability
+    • Comprehensive audit trails
+    
+    **Decorator:**
+    • Transparent cross-cutting concerns
+    • Composable functionality
+    • Non-invasive enhancements
+end note
+
+' ========== CBSE PRINCIPLES MAINTAINED ==========
+note as CBSEPrinciples
+    **CBSE Principles Enhanced by Patterns**
+    
+    **Reusability (Improved):**
+    • Factory patterns reusable across domains
+    • Strategy patterns applicable to different contexts
+    • Decorator patterns composable
+    
+    **Composability (Enhanced):**
+    • Observer enables dynamic composition
+    • Command enables operation composition
+    • Decorator enables functionality composition
+    
+    **Extensibility (Strengthened):**
+    • Factory Method: New product types
+    • Strategy: New pricing algorithms
+    • Observer: New event subscribers
+    
+    **Maintainability (Optimized):**
+    • Singleton: Centralized configuration
+    • Command: Traceable operations
+    • Decorator: Separated concerns
+end note
+
+' ========== DEPLOYMENT CONSIDERATIONS ==========
+note as DeploymentNotes
+    **Pattern Implementation Considerations**
+    
+    **Performance Impact:**
+    • Factory Method: Minimal overhead
+    • Strategy: Runtime selection cost
+    • Observer: Event propagation latency
+    • Singleton: Thread synchronization
+    • Command: Memory for history
+    • Decorator: Chain traversal cost
+    
+    **Scalability:**
+    • Event System: Async processing
+    • Command Processor: Queue management
+    • Configuration Manager: Caching
+    
+    **Monitoring:**
+    • Pattern usage metrics
+    • Performance monitoring
+    • Error tracking per pattern
+end note
+
+@enduml
